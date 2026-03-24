@@ -59,13 +59,13 @@ jobs:
             Start with AppExceptions — this is the most important table:
             az monitor log-analytics query \
               --workspace a53c2ee0-9900-4756-b9c1-ab1b96a28d87 \
-              --analytics-query "AppExceptions | where TimeGenerated > ago(7d) | summarize count() by ExceptionType, OuterMessage, AppRoleName | order by count_ desc | limit 50" \
+              --analytics-query "AppExceptions | where TimeGenerated > ago(24h) | summarize count() by ExceptionType, OuterMessage, AppRoleName | order by count_ desc | limit 5" \
               --output json
 
             Then check AppRequests for failures if needed:
             az monitor log-analytics query \
               --workspace a53c2ee0-9900-4756-b9c1-ab1b96a28d87 \
-              --analytics-query "AppRequests | where TimeGenerated > ago(7d) and Success == false | summarize count() by Name, ResultCode, AppRoleName | order by count_ desc | limit 20" \
+              --analytics-query "AppRequests | where TimeGenerated > ago(24h) and Success == false | summarize count() by Name, ResultCode, AppRoleName | order by count_ desc | limit 5" \
               --output json
 
             Then run targeted KQL queries on relevant tables using:
