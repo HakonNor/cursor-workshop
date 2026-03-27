@@ -105,31 +105,28 @@ jobs:
           parsed = urlparse(endpoint)
           print(f"Calling endpoint: {parsed.scheme}://{parsed.netloc}{parsed.path}/chat/completions")
 
-          url = f"{endpoint}/chat/completions"
+          # Endpoint already includes /anthropic/v1/messages — call it directly
+          url = endpoint
+          print(f"Calling: {url}")
 
           headers = {
-              "api-key": api_key,
-              "Content-Type": "application/json",
+              "x-api-key": api_key,
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
           }
 
           payload = {
               "model": "claude-sonnet-4-6",
               "max_tokens": 4096,
+              "system": (
+                  "You are a helpful AI assistant working inside a GitHub repository. "
+                  "You are responding to issues and comments where users have tagged @claude. "
+                  "Be concise, helpful, and technical. Format your responses in Markdown. "
+                  "When suggesting code changes, include file paths and code blocks. "
+                  "End your response with a brief note that you are an AI assistant."
+              ),
               "messages": [
-                  {
-                      "role": "system",
-                      "content": (
-                          "You are a helpful AI assistant working inside a GitHub repository. "
-                          "You are responding to issues and comments where users have tagged @claude. "
-                          "Be concise, helpful, and technical. Format your responses in Markdown. "
-                          "When suggesting code changes, include file paths and code blocks. "
-                          "End your response with a brief note that you are an AI assistant."
-                      ),
-                  },
-                  {
-                      "role": "user",
-                      "content": os.environ["ISSUE_CONTEXT"],
-                  },
+                  {"role": "user", "content": os.environ["ISSUE_CONTEXT"]},
               ],
           }
 
@@ -139,7 +136,7 @@ jobs:
               print(f"HTTP {response.status_code}: {response.text}")
               response.raise_for_status()
 
-          text = response.json()["choices"][0]["message"]["content"]
+          text = response.json()["content"][0]["text"]
 
           with open("/tmp/claude_response.md", "w") as f:
               f.write(text)
