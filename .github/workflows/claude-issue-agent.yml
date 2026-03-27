@@ -83,45 +83,46 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Anthropic SDK
-        run: pip install anthropic
+      - name: Install Azure AI Inference SDK
+        run: pip install azure-ai-inference
 
       - name: Call Claude via AI Foundry
         id: claude
         env:
-          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+          AZURE_AI_ENDPOINT: ${{ secrets.ANTHROPIC_BASE_URL }}
+          AZURE_AI_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
           ISSUE_CONTEXT: ${{ steps.issue-context.outputs.context }}
         run: |
           python - <<'EOF'
-          import anthropic
           import os
+          from azure.ai.inference import ChatCompletionsClient
+          from azure.ai.inference.models import SystemMessage, UserMessage
+          from azure.core.credentials import AzureKeyCredential
 
-          client = anthropic.Anthropic(
-              api_key=os.environ["ANTHROPIC_API_KEY"].strip(),
-              base_url=os.environ["ANTHROPIC_BASE_URL"].strip(),
+          client = ChatCompletionsClient(
+              endpoint=os.environ["AZURE_AI_ENDPOINT"].strip(),
+              credential=AzureKeyCredential(os.environ["AZURE_AI_API_KEY"].strip()),
           )
 
-          message = client.messages.create(
+          response = client.complete(
               model="claude-sonnet-4-6",
               max_tokens=4096,
-              system=(
-                  "You are a helpful AI assistant working inside a GitHub repository. "
-                  "You are responding to issues and comments where users have tagged @claude. "
-                  "Be concise, helpful, and technical. Format your responses in Markdown. "
-                  "When suggesting code changes, include file paths and code blocks. "
-                  "End your response with a brief note that you are an AI assistant."
-              ),
               messages=[
-                  {"role": "user", "content": os.environ["ISSUE_CONTEXT"]}
+                  SystemMessage(content=(
+                      "You are a helpful AI assistant working inside a GitHub repository. "
+                      "You are responding to issues and comments where users have tagged @claude. "
+                      "Be concise, helpful, and technical. Format your responses in Markdown. "
+                      "When suggesting code changes, include file paths and code blocks. "
+                      "End your response with a brief note that you are an AI assistant."
+                  )),
+                  UserMessage(content=os.environ["ISSUE_CONTEXT"]),
               ],
           )
 
-          response = message.content[0].text
+          text = response.choices[0].message.content
 
-          # Write to file to avoid shell escaping issues
           with open("/tmp/claude_response.md", "w") as f:
-              f.write(response)
+              f.write(text)
 
           print("Claude responded successfully.")
           EOF
