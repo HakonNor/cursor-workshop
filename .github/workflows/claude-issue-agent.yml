@@ -98,8 +98,8 @@ jobs:
           import os
 
           client = anthropic.Anthropic(
-              api_key=os.environ["ANTHROPIC_API_KEY"],
-              base_url=os.environ["ANTHROPIC_BASE_URL"],
+              api_key=os.environ["ANTHROPIC_API_KEY"].strip(),
+              base_url=os.environ["ANTHROPIC_BASE_URL"].strip(),
           )
 
           message = client.messages.create(
